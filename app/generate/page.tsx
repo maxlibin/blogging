@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { PostStatus, GeneratedPost, ResearchSource } from '../../types';
+import { PostStatus, GeneratedPost, ResearchSource, ResearchResult } from '../../types';
 import { performResearch, writeBlogPost } from '../../services/gemini';
 import { draftToWordPress } from '../../services/wordpress';
 import { useWordPress } from '../../contexts/WordPressContext';
@@ -13,7 +13,11 @@ import {
   CheckCircle2, 
   AlertTriangle, 
   ExternalLink,
-  Zap
+  Zap,
+  TrendingUp,
+  MessageSquare,
+  Newspaper,
+  Edit3
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
@@ -21,14 +25,16 @@ import { Button } from '../../components/ui/button';
 import { Label } from '../../components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert';
 import { Badge } from '../../components/ui/badge';
+import { TipTapEditor } from '../../components/TipTapEditor';
 import { cn } from '../../lib/utils';
 
 export default function PostGenerator() {
   const { settings: wpSettings } = useWordPress();
   const [topic, setTopic] = useState('');
   const [status, setStatus] = useState<PostStatus>(PostStatus.IDLE);
-  const [researchData, setResearchData] = useState<{ summary: string, sources: ResearchSource[] } | null>(null);
+  const [researchData, setResearchData] = useState<ResearchResult | null>(null);
   const [generatedPost, setGeneratedPost] = useState<GeneratedPost | null>(null);
+  const [editorContent, setEditorContent] = useState<string>(''); // State for Tiptap editor
   const [error, setError] = useState<string | null>(null);
   const [publishResult, setPublishResult] = useState<{ id: number, link: string } | null>(null);
 
@@ -42,6 +48,7 @@ export default function PostGenerator() {
     setError(null);
     setResearchData(null);
     setGeneratedPost(null);
+    setEditorContent('');
     setPublishResult(null);
 
     try {
@@ -51,7 +58,7 @@ export default function PostGenerator() {
 
       // 2. Write
       setStatus(PostStatus.WRITING);
-      const postContent = await writeBlogPost(topic, research.summary);
+      const postContent = await writeBlogPost(topic, research.summary); // Note: prompt might need to handle JSON summary now
       
       const fullPost: GeneratedPost = {
         title: postContent.title,
@@ -60,6 +67,7 @@ export default function PostGenerator() {
         sources: research.sources
       };
       setGeneratedPost(fullPost);
+      setEditorContent(postContent.content); // Initialize editor
 
       // 3. Auto Draft if Connected
       if (wpSettings.isConnected) {
@@ -72,6 +80,7 @@ export default function PostGenerator() {
       }
 
     } catch (err: any) {
+      console.error(err);
       setError(err.message || "An unexpected error occurred.");
       setStatus(PostStatus.FAILED);
     }
@@ -82,7 +91,8 @@ export default function PostGenerator() {
 
     setStatus(PostStatus.DRAFTING);
     try {
-      const result = await draftToWordPress(wpSettings, generatedPost.title, generatedPost.content);
+      // Use editorContent instead of generatedPost.content to include edits
+      const result = await draftToWordPress(wpSettings, generatedPost.title, editorContent);
       setPublishResult(result);
       setStatus(PostStatus.COMPLETED);
     } catch (err: any) {
@@ -92,10 +102,10 @@ export default function PostGenerator() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto pb-20 space-y-8 animate-in fade-in duration-500">
+    <div className="max-w-7xl mx-auto pb-20 space-y-8 animate-in fade-in duration-500">
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">Auto-Write Blog Post</h1>
-        <p className="text-slate-500 mt-2">Enter a topic, and our AI will research the latest news, write a humanized post, and automatically draft it to your WordPress.</p>
+        <p className="text-slate-500 mt-2">Enter a topic to generate a trend report, write a humanized post, and edit it before drafting.</p>
       </div>
 
       {/* Topic Input */}
@@ -103,13 +113,13 @@ export default function PostGenerator() {
         <CardContent className="p-6">
           <form onSubmit={handleStart} className="flex flex-col md:flex-row gap-4 items-end">
             <div className="flex-1 w-full space-y-2">
-              <Label htmlFor="topic">What should we write about?</Label>
+              <Label htmlFor="topic">Topic or Keyword</Label>
               <Input
                 id="topic"
                 type="text"
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                placeholder="e.g. The impact of quantum computing on cryptography..."
+                placeholder="e.g. AI agents in 2025"
                 disabled={isProcessing}
                 className="h-12 text-lg"
               />
@@ -125,14 +135,9 @@ export default function PostGenerator() {
               ) : (
                  <Zap className="mr-2 h-4 w-4" />
               )}
-              {wpSettings.isConnected ? 'Generate & Draft' : 'Generate Post'}
+              {wpSettings.isConnected ? 'Generate & Draft' : 'Generate Report'}
             </Button>
           </form>
-          {wpSettings.isConnected && (
-             <p className="text-xs text-green-600 mt-3 flex items-center gap-1 font-medium">
-               <CheckCircle2 size={12} /> Auto-draft enabled for connected blog.
-             </p>
-          )}
         </CardContent>
       </Card>
 
@@ -141,7 +146,7 @@ export default function PostGenerator() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <StepCard 
             icon={Search} 
-            title="Latest Research" 
+            title="Trend Radar Research" 
             status={status === PostStatus.RESEARCHING ? 'active' : (researchData ? 'done' : 'pending')} 
           />
           <StepCard 
@@ -171,59 +176,101 @@ export default function PostGenerator() {
         </Alert>
       )}
 
-      {/* Results Area */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         
-        {/* Left: Research Notes */}
+        {/* Left: Trend Radar Dashboard */}
         {researchData && (
-          <div className="lg:col-span-1 space-y-6">
-             <Card className="h-full">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Search className="text-indigo-500 h-5 w-5"/> Research Notes
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                   <div className="prose prose-sm text-slate-600 max-h-[300px] overflow-y-auto pr-2 text-xs">
-                      <p className="whitespace-pre-wrap">{researchData.summary}</p>
-                   </div>
+          <div className="xl:col-span-1 space-y-6">
+            <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+              <TrendingUp size={20} className="text-blue-600" /> Trend Radar Analysis
+            </h3>
+            
+            {/* Sentiment */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Community Sentiment</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-4">
+                  <div className="text-3xl font-bold text-slate-900 capitalize">{researchData.trendAnalysis.sentiment}</div>
+                  <Badge variant={researchData.trendAnalysis.sentiment === 'positive' ? 'success' : researchData.trendAnalysis.sentiment === 'negative' ? 'destructive' : 'secondary'}>
+                    {researchData.trendAnalysis.sentiment}
+                  </Badge>
+                </div>
+                <p className="text-sm text-slate-500 mt-2">Based on recent discussions and articles.</p>
+              </CardContent>
+            </Card>
 
-                   <div className="pt-4 border-t border-slate-100">
-                      <h4 className="font-semibold text-sm text-slate-900 mb-3">Sources Used</h4>
-                      <ul className="space-y-3">
-                        {researchData.sources.length > 0 ? researchData.sources.map((source, i) => (
-                          <li key={i} className="text-xs group">
-                            <a href={source.uri} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline flex items-start gap-2">
-                              <ExternalLink size={12} className="shrink-0 mt-0.5 opacity-50 group-hover:opacity-100" />
-                              <span className="line-clamp-2">{source.title}</span>
-                            </a>
-                          </li>
-                        )) : (
-                          <li className="text-slate-500 italic text-xs">No specific web sources returned.</li>
-                        )}
-                      </ul>
+            {/* Key Drivers / Facts */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Key Drivers & Events</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                 {researchData.trendAnalysis.key_events.map((event, i) => (
+                   <div key={i} className="flex gap-3 items-start">
+                     <div className="min-w-[4px] h-4 mt-1 bg-indigo-500 rounded-full" />
+                     <p className="text-sm text-slate-700 leading-relaxed">{event}</p>
                    </div>
-                </CardContent>
-             </Card>
+                 ))}
+              </CardContent>
+            </Card>
+
+             {/* Sources Breakdown */}
+             <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Intelligence Sources</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <h5 className="text-xs font-semibold text-slate-500 uppercase mb-2 flex items-center gap-1"><Newspaper size={12} /> News & Official</h5>
+                    <ul className="space-y-2">
+                      {researchData.trendAnalysis.sources_news.map((s, i) => (
+                        <li key={i} className="text-xs truncate text-slate-600 hover:text-indigo-600 transition-colors">
+                          <a href="#" className="flex items-center gap-2">
+                            <ExternalLink size={10} /> {s}
+                          </a>
+                        </li>
+                      ))}
+                      {researchData.trendAnalysis.sources_news.length === 0 && <li className="text-xs text-slate-400">No news sources found.</li>}
+                    </ul>
+                  </div>
+                  <div>
+                    <h5 className="text-xs font-semibold text-slate-500 uppercase mb-2 flex items-center gap-1"><MessageSquare size={12} /> Community & Social</h5>
+                    <ul className="space-y-2">
+                      {researchData.trendAnalysis.sources_social.map((s, i) => (
+                        <li key={i} className="text-xs truncate text-slate-600 hover:text-indigo-600 transition-colors">
+                          <a href="#" className="flex items-center gap-2">
+                            <ExternalLink size={10} /> {s}
+                          </a>
+                        </li>
+                      ))}
+                      {researchData.trendAnalysis.sources_social.length === 0 && <li className="text-xs text-slate-400">No social signals found.</li>}
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         )}
 
-        {/* Right: Generated Content */}
+        {/* Right: Content Editor */}
         {generatedPost && (
-          <div className="lg:col-span-2 animate-in fade-in slide-in-from-bottom-4 duration-500">
-             <Card>
+          <div className="xl:col-span-2 animate-in fade-in slide-in-from-bottom-4 duration-500">
+             <Card className="h-full border-indigo-200/50 shadow-sm flex flex-col">
                 <CardHeader className="border-b border-slate-100 bg-slate-50/50 rounded-t-lg pb-4">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div className="space-y-1">
-                      <CardTitle>Preview Draft</CardTitle>
-                      <CardDescription>Review the generated content before publishing.</CardDescription>
+                      <CardTitle className="flex items-center gap-2"><Edit3 size={18} className="text-indigo-600" /> Content Editor</CardTitle>
+                      <CardDescription>Edit your post below before publishing.</CardDescription>
                     </div>
                     
                     {publishResult ? (
                       <Badge variant="success" className="px-3 py-1 text-sm flex gap-2 items-center">
                          <CheckCircle2 size={14} /> Drafted in WP
                          <a href={publishResult.link} target="_blank" rel="noreferrer" className="ml-2 underline text-white/90 hover:text-white">
-                           Edit
+                           Open
                          </a>
                       </Badge>
                     ) : (
@@ -231,10 +278,11 @@ export default function PostGenerator() {
                          <Button 
                            onClick={handleManualDraft}
                            disabled={status === PostStatus.DRAFTING}
+                           className="bg-slate-900 text-white hover:bg-slate-800"
                            size="sm"
                          >
                            {status === PostStatus.DRAFTING ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Send className="mr-2 h-4 w-4" />}
-                           Draft to WP
+                           Draft to WordPress
                          </Button>
                       ) : (
                         <Badge variant="warning">Connect WP to Draft</Badge>
@@ -242,13 +290,15 @@ export default function PostGenerator() {
                     )}
                   </div>
                 </CardHeader>
-                <CardContent className="p-8">
-                  <h1 className="text-3xl font-bold text-slate-900 mb-6 leading-tight">{generatedPost.title}</h1>
-                  <div 
-                    className="prose prose-slate max-w-none prose-headings:font-bold prose-a:text-indigo-600"
-                    dangerouslySetInnerHTML={{ __html: generatedPost.content }}
+                
+                <div className="flex-1 bg-white p-0">
+                  {/* Pass the generated content and the change handler to the Tiptap editor */}
+                  <TipTapEditor 
+                    content={generatedPost.content} 
+                    onChange={setEditorContent} 
+                    className="min-h-[600px] border-none rounded-none shadow-none"
                   />
-                </CardContent>
+                </div>
              </Card>
           </div>
         )}

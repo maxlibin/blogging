@@ -1,12 +1,15 @@
 "use server";
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { ResearchSource } from "../types";
+import { ResearchSource, ResearchResult } from "../types";
 
 const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-export const performResearch = async (topic: string): Promise<{ summary: string; sources: ResearchSource[] }> => {
+export const performResearch = async (topic: string): Promise<ResearchResult> => {
   const ai = getAI();
+  
+  let summary = "";
+  const sources: ResearchSource[] = [];
   
   // Step 1: Research using Google Search Grounding
   try {
@@ -23,10 +26,9 @@ export const performResearch = async (topic: string): Promise<{ summary: string;
       },
     });
 
-    const text = response.text || "No research generated.";
+    summary = response.text || "No research generated.";
     
     // Extract sources from grounding metadata
-    const sources: ResearchSource[] = [];
     const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
     
     if (chunks) {
@@ -39,11 +41,72 @@ export const performResearch = async (topic: string): Promise<{ summary: string;
         }
       });
     }
-
-    return { summary: text, sources };
   } catch (error) {
-    console.error("Research failed:", error);
+    console.error("Research step failed:", error);
     throw new Error("Failed to research topic.");
+  }
+
+  // Step 2: Analyze the search results to get structured trend data
+  try {
+    const analysisPrompt = `
+      Analyze the following research summary about "${topic}" and extract trend intelligence.
+      
+      Research Summary:
+      ${summary}
+      
+      Return a JSON object with the following properties:
+      - sentiment: "positive", "neutral", or "negative"
+      - key_events: Array of key event strings
+      - sources_news: Array of news source names mentioned
+      - sources_social: Array of social media sources mentioned
+    `;
+
+    const analysisResponse = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: analysisPrompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            sentiment: { type: Type.STRING },
+            key_events: { type: Type.ARRAY, items: { type: Type.STRING } },
+            sources_news: { type: Type.ARRAY, items: { type: Type.STRING } },
+            sources_social: { type: Type.ARRAY, items: { type: Type.STRING } },
+          },
+          required: ["sentiment", "key_events", "sources_news", "sources_social"]
+        }
+      }
+    });
+
+    const analysisText = analysisResponse.text;
+    const trendAnalysis = analysisText ? JSON.parse(analysisText) : {
+      sentiment: 'neutral',
+      key_events: [],
+      sources_news: [],
+      sources_social: []
+    };
+
+    // Ensure sentiment is valid
+    if (!['positive', 'neutral', 'negative'].includes(trendAnalysis.sentiment)) {
+        trendAnalysis.sentiment = 'neutral';
+    }
+
+    return { summary, sources, trendAnalysis };
+
+  } catch (error) {
+    console.error("Analysis step failed:", error);
+    // Fallback
+    return {
+      summary,
+      sources,
+      trendAnalysis: {
+        sentiment: 'neutral',
+        key_events: [],
+        sources_news: [],
+        sources_social: []
+      }
+    };
   }
 };
 

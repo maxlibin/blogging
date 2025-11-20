@@ -20,6 +20,19 @@ export interface ResearchSource {
   uri: string;
 }
 
+export interface TrendAnalysis {
+  sentiment: 'positive' | 'neutral' | 'negative';
+  key_events: string[];
+  sources_news: string[];
+  sources_social: string[];
+}
+
+export interface ResearchResult {
+  summary: string;
+  sources: ResearchSource[];
+  trendAnalysis: TrendAnalysis;
+}
+
 export interface GeneratedPost {
   title: string;
   content: string; // HTML content
