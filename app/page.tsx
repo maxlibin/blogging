@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 import { Plus, FileText, TrendingUp, Calendar, ArrowRight } from 'lucide-react';
 import { BlogPostRecord } from '../types';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../components/ui/card';
@@ -22,7 +22,7 @@ export default function Dashboard() {
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">Dashboard</h1>
           <p className="text-slate-500 mt-2">Overview of your automated blog content and performance.</p>
         </div>
-        <Link href="/generate">
+        <Link to="/generate">
           <Button className="bg-indigo-600 hover:bg-indigo-700 shadow-md gap-2">
             <Plus size={18} /> Create New
           </Button>

@@ -1,8 +1,7 @@
 "use client";
 
 import React from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, PenTool, Settings } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { cn } from '../lib/utils';
@@ -14,7 +13,6 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ className, onLinkClick }) => {
-  const pathname = usePathname();
   const { settings, isLoaded } = useWordPress();
 
   const links = [
@@ -37,13 +35,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, onLinkClick }) => {
       <nav className="flex-1 p-4 space-y-1">
         {links.map((link) => {
           const Icon = link.icon;
-          const isActive = pathname === link.href;
           return (
-            <Link
+            <NavLink
               key={link.href}
-              href={link.href}
+              to={link.href}
               onClick={onLinkClick}
-              className={cn(
+              className={({ isActive }) => cn(
                 "flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-200 text-sm font-medium",
                 isActive 
                   ? "bg-slate-900 text-white shadow-sm" 
@@ -52,7 +49,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, onLinkClick }) => {
             >
               <Icon size={18} />
               <span>{link.label}</span>
-            </Link>
+            </NavLink>
           );
         })}
       </nav>
