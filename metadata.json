@@ -1,0 +1,5 @@
+{
+  "name": "AutoBlog Pilot",
+  "description": "An AI-powered autonomous blog writer that researches topics, generates human-like content, and drafts directly to WordPress.",
+  "requestFramePermissions": []
+}
