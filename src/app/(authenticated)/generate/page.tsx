@@ -346,22 +346,24 @@ export default function PostGenerator() {
       <div className="flex gap-8 items-start">
         
         {/* --- LEFT COLUMN: Process & Intelligence --- */}
-        <div className="w-[280px] shrink-0 space-y-6 sticky top-6 hidden lg:block">
-            
-            {/* Progress Stepper */}
-            <ProcessStepper steps={steps} />
+        {status !== PostStatus.IDLE && (
+          <div className="w-[280px] shrink-0 space-y-6 sticky top-6 hidden lg:block">
+              
+              {/* Progress Stepper */}
+              <ProcessStepper steps={steps} />
 
-            {/* Articles List */}
-            <ArticlesList 
-              articles={allPosts}
-              loading={loadingPosts}
-              currentPostId={currentPostId}
-              onArticleClick={(id) => window.location.href = `/generate?postId=${id}`}
-            />
+              {/* Articles List */}
+              <ArticlesList 
+                articles={allPosts}
+                loading={loadingPosts}
+                currentPostId={currentPostId}
+                onArticleClick={(id) => window.location.href = `/generate?postId=${id}`}
+              />
 
-            {/* Research Radar (Only visible after research is done) */}
-            {researchData && <TrendRadar researchData={researchData} />}
-        </div>
+              {/* Research Radar (Only visible after research is done) */}
+              {researchData && <TrendRadar researchData={researchData} />}
+          </div>
+        )}
 
         {/* --- RIGHT COLUMN: Workspace --- */}
         <div className="flex-1">
