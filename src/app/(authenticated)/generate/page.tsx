@@ -3,8 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { PostStatus, GeneratedPost, ResearchResult, SuggestedTopic } from '../../../types';
-import { performResearch, writeBlogPost, generateBlogImage } from '../../../services/gemini';
-import { draftToWordPress } from '../../../services/wordpress';
+import { draftToWordPress } from '../../../lib/wordpress';
 import { useWordPress } from '../../../contexts/WordPressContext';
 import { 
   Search, 
@@ -73,7 +72,17 @@ export default function PostGenerator() {
     updateStep('research', 'processing');
 
     try {
-      const research = await performResearch(broadTopic);
+      const response = await fetch('/api/research', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic: broadTopic }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Research failed');
+      }
+
+      const research: ResearchResult = await response.json();
       setResearchData(research);
       updateStep('research', 'completed');
       updateStep('strategy', 'processing'); // Move focus to next step
@@ -95,14 +104,26 @@ export default function PostGenerator() {
     
     try {
         // Parallel Execution: Generate Image AND Write Post
-        const imagePromise = generateBlogImage(topic.title);
-        const writingPromise = writeBlogPost(topic.title, researchData?.summary || "");
+        const imagePromise = fetch('/api/generate-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ topic: topic.title }),
+        }).then(res => res.json());
+
+        const writingPromise = fetch('/api/generate-post', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            topic: topic.title, 
+            researchSummary: researchData?.summary || "" 
+          }),
+        }).then(res => res.json());
         
         // We wait for writing to finish to show content, image can load in when ready if it takes longer
         // but for simplicity in this flow, let's wait for both or handle sequentially
         
         setStatus(PostStatus.GENERATING_IMAGE);
-        const featuredImage = await imagePromise;
+        const { imageUrl: featuredImage } = await imagePromise;
         
         setStatus(PostStatus.WRITING);
         const postContent = await writingPromise;
@@ -323,7 +344,7 @@ export default function PostGenerator() {
 
             {/* VIEW 2: Researching Loading State */}
             {status === PostStatus.RESEARCHING && (
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-12 min-h-[500px] flex flex-col justify-center items-center">
+                <div className="p-12 min-h-[500px] flex flex-col justify-center items-center">
                     <div className="relative">
                         <div className="w-20 h-20 border-4 border-purple-100 border-t-purple-600 rounded-full animate-spin"></div>
                         <div className="absolute inset-0 flex items-center justify-center">

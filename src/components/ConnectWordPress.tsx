@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { WordPressSettings } from '../types';
-import { validateWPConnection } from '../services/wordpress';
+import { validateWPConnection } from '../lib/wordpress';
 import { useWordPress } from '../contexts/WordPressContext';
 import { CheckCircle, AlertCircle, Loader2, Globe, Lock, User } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from './ui/card';

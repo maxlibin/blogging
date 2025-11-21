@@ -42,6 +42,7 @@ const ToolbarButton = ({
 
 export const TipTapEditor: React.FC<TipTapEditorProps> = ({ content, onChange, className }) => {
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit,
       Link.configure({
