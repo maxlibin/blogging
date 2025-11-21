@@ -8,6 +8,7 @@ import { usePathname } from 'next/navigation';
 import { LayoutDashboard, PenTool, Settings, LogOut, Zap, CheckCircle2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useWordPress } from '../contexts/WordPressContext';
+import { UserButton } from '@clerk/nextjs';
 
 interface SidebarProps {
   className?: string;
@@ -75,22 +76,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, onLinkClick, showLa
 
   return (
     <aside className={cn(
-      "flex flex-col bg-white/80 backdrop-blur-xl border-r border-slate-100 h-full transition-all duration-300",
+      "flex flex-col h-full transition-all duration-300",
       showLabels ? "w-72" : "w-24 items-center", 
       className
     )}>
-      {/* Logo Section */}
-      <div className={cn("h-24 flex items-center", showLabels ? "px-8" : "justify-center")}>
-        <Link href="/" className="flex items-center gap-2 text-slate-900 group">
-           <div className="flex items-center justify-center w-10 h-10 bg-purple-600 text-white rounded-xl transform transition-transform group-hover:rotate-3 shadow-lg shadow-purple-200">
-             <div className="w-3 h-3 bg-white rounded-full" />
-           </div>
-           {showLabels && (
-             <span className="text-xl font-bold tracking-tight animate-in fade-in duration-300">
-               Ai<span className="text-purple-600">Writer</span>
-             </span>
-           )}
-        </Link>
+      {/* User Section */}
+      <div className={cn("h-24 flex items-center", showLabels ? "px-6" : "justify-center")}>
+        <UserButton 
+          afterSignOutUrl="/"
+          showName={showLabels}
+          appearance={{
+            elements: {
+              userButtonBox: showLabels ? "flex-row-reverse" : "",
+              userButtonOuterIdentifier: showLabels ? "text-slate-900 font-medium" : "",
+            }
+          }}
+        />
       </div>
       
       {/* Navigation */}
@@ -131,11 +132,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, onLinkClick, showLa
             </div>
          )}
 
-         {/* Connection Status / Profile */}
-         <div className={cn("pt-4 border-t border-slate-100", showLabels ? "w-full" : "w-12 border-t-0 pt-0 flex justify-center")}>
+         {/* Connection Status */}
+         <div className={cn("pt-4 border-t border-slate-100", showLabels ? "w-full px-2" : "w-12 border-t-0 pt-0 flex justify-center")}>
             {isLoaded && (
                <div 
-                 className={cn("flex items-center gap-2 mb-4", showLabels ? "px-2" : "justify-center")}
+                 className={cn("flex items-center gap-2", showLabels ? "" : "justify-center")}
                  title={settings.isConnected ? "WordPress Connected" : "Offline Mode"}
                >
                  {settings.isConnected ? (
@@ -159,20 +160,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, onLinkClick, showLa
                  )}
                </div>
             )}
-            
-            <Link 
-               href="/" 
-               className={cn(
-                  "flex items-center transition-colors", 
-                  showLabels 
-                     ? "gap-2 text-slate-400 hover:text-slate-600 text-xs px-2 font-medium" 
-                     : "justify-center text-slate-400 hover:text-red-500 w-12 h-12 hover:bg-red-50 rounded-xl"
-               )}
-               title="Sign Out"
-            >
-                <LogOut size={18} />
-                {showLabels && <span>Sign Out</span>}
-            </Link>
          </div>
       </div>
     </aside>

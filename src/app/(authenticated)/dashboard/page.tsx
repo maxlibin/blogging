@@ -3,10 +3,10 @@
 import React from 'react';
 import Link from 'next/link';
 import { Plus, FileText, TrendingUp, Calendar, ArrowRight, Sparkles } from 'lucide-react';
-import { BlogPostRecord } from '../../types';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../../components/ui/card';
-import { Button } from '../../components/ui/button';
-import { Badge } from '../../components/ui/badge';
+import { BlogPostRecord } from '../../../types';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../../../components/ui/card';
+import { Button } from '../../../components/ui/button';
+import { Badge } from '../../../components/ui/badge';
 
 export default function Dashboard() {
   const recentPosts: BlogPostRecord[] = [

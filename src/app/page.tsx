@@ -26,6 +26,13 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
+import {
+  SignInButton,
+  SignUpButton,
+  SignedIn,
+  SignedOut,
+  UserButton,
+} from '@clerk/nextjs';
 
 export default function LandingPage() {
   return (
@@ -55,14 +62,26 @@ export default function LandingPage() {
         </div>
 
         <div className="flex items-center gap-4">
-           <Link href="/dashboard" className="text-sm font-medium text-slate-900 hidden sm:block hover:text-purple-600 transition-colors">
-             Login
-           </Link>
-           <Link href="/dashboard">
-             <button className="bg-black text-white text-sm font-bold px-6 py-2.5 rounded-full hover:bg-slate-800 transition-all hover:scale-105 shadow-lg">
-               Free Trials
-             </button>
-           </Link>
+           <SignedOut>
+             <SignInButton mode="modal">
+               <button className="text-sm font-medium text-slate-900 hidden sm:block hover:text-purple-600 transition-colors">
+                 Login
+               </button>
+             </SignInButton>
+             <SignUpButton mode="modal">
+               <button className="bg-black text-white text-sm font-bold px-6 py-2.5 rounded-full hover:bg-slate-800 transition-all hover:scale-105 shadow-lg">
+                 Free Trials
+               </button>
+             </SignUpButton>
+           </SignedOut>
+           <SignedIn>
+             <Link href="/dashboard">
+               <Button variant="ghost" className="text-sm font-medium text-slate-900 hover:text-purple-600">
+                 Dashboard
+               </Button>
+             </Link>
+             <UserButton afterSignOutUrl="/" />
+           </SignedIn>
         </div>
       </nav>
 

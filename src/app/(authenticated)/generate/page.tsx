@@ -2,10 +2,10 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { PostStatus, GeneratedPost, ResearchResult, SuggestedTopic } from '../../types';
-import { performResearch, writeBlogPost, generateBlogImage } from '../../services/gemini';
-import { draftToWordPress } from '../../services/wordpress';
-import { useWordPress } from '../../contexts/WordPressContext';
+import { PostStatus, GeneratedPost, ResearchResult, SuggestedTopic } from '../../../types';
+import { performResearch, writeBlogPost, generateBlogImage } from '../../../services/gemini';
+import { draftToWordPress } from '../../../services/wordpress';
+import { useWordPress } from '../../../contexts/WordPressContext';
 import { 
   Search, 
   FileText, 
@@ -23,14 +23,14 @@ import {
   LayoutTemplate,
   MousePointerClick
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { Input } from '../../components/ui/input';
-import { Button } from '../../components/ui/button';
-import { Label } from '../../components/ui/label';
-import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert';
-import { Badge } from '../../components/ui/badge';
-import { TipTapEditor } from '../../components/TipTapEditor';
-import { cn } from '../../lib/utils';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
+import { Input } from '../../../components/ui/input';
+import { Button } from '../../../components/ui/button';
+import { Label } from '../../../components/ui/label';
+import { Alert, AlertDescription, AlertTitle } from '../../../components/ui/alert';
+import { Badge } from '../../../components/ui/badge';
+import { TipTapEditor } from '../../../components/TipTapEditor';
+import { cn } from '../../../lib/utils';
 
 interface ThinkingStep {
   id: string;
@@ -191,10 +191,10 @@ export default function PostGenerator() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div className="flex gap-8 items-start">
         
         {/* --- LEFT COLUMN: Process & Intelligence --- */}
-        <div className="lg:col-span-3 space-y-6 sticky top-6">
+        <div className="w-[280px] shrink-0 space-y-6 sticky top-6 hidden lg:block">
             
             {/* Progress Stepper */}
             <Card className="border-slate-200 shadow-sm overflow-hidden">
@@ -281,11 +281,11 @@ export default function PostGenerator() {
         </div>
 
         {/* --- RIGHT COLUMN: Workspace --- */}
-        <div className="lg:col-span-9">
+        <div className="flex-1">
             
             {/* VIEW 1: Initial Input */}
             {status === PostStatus.IDLE && (
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-8 md:p-12 text-center space-y-8 min-h-[500px] flex flex-col justify-center items-center">
+                <div className="p-8 md:p-12 text-center space-y-8 min-h-[500px] flex flex-col justify-center items-center">
                     <div className="max-w-lg mx-auto space-y-4">
                         <div className="w-16 h-16 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
                             <Sparkles size={32} />

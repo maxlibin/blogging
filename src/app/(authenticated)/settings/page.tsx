@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { ConnectWordPress } from '../../components/ConnectWordPress';
+import { ConnectWordPress } from '../../../components/ConnectWordPress';
 
 export default function SettingsPage() {
   return (
