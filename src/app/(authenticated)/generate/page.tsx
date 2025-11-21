@@ -50,6 +50,7 @@ export default function PostGenerator() {
   const [editorContent, setEditorContent] = useState<string>(''); 
   const [error, setError] = useState<string | null>(null);
   const [publishResult, setPublishResult] = useState<{ id: number, link: string } | null>(null);
+  const [currentPostId, setCurrentPostId] = useState<number | null>(null);
 
   // Steps visualization state
   const [steps, setSteps] = useState<ThinkingStep[]>([
@@ -84,6 +85,26 @@ export default function PostGenerator() {
 
       const research: ResearchResult = await response.json();
       setResearchData(research);
+      
+      // Save research to database
+      const postResponse = await fetch('/api/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: `Research: ${broadTopic}`,
+          content: '',
+          status: 'researching',
+          researchSummary: research.summary,
+          trendAnalysis: research.trendAnalysis,
+          sources: research.sources,
+        }),
+      });
+      
+      if (postResponse.ok) {
+        const savedPost = await postResponse.json();
+        setCurrentPostId(savedPost.id);
+      }
+      
       updateStep('research', 'completed');
       updateStep('strategy', 'processing'); // Move focus to next step
       setStatus(PostStatus.TOPIC_SELECTION);
@@ -138,6 +159,21 @@ export default function PostGenerator() {
 
         setGeneratedPost(fullPost);
         setEditorContent(postContent.content);
+        
+        // Update database with generated content
+        if (currentPostId) {
+          await fetch(`/api/posts/${currentPostId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title: postContent.title,
+              content: postContent.content,
+              status: 'draft',
+              featuredImageUrl: featuredImage || null,
+            }),
+          });
+        }
+        
         updateStep('production', 'completed');
         setStatus(PostStatus.COMPLETED);
 
@@ -156,6 +192,20 @@ export default function PostGenerator() {
     try {
       const result = await draftToWordPress(wpSettings, generatedPost.title, editorContent);
       setPublishResult(result);
+      
+      // Update database with WordPress info
+      if (currentPostId) {
+        await fetch(`/api/posts/${currentPostId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            status: 'published',
+            wordpressId: result.id,
+            wordpressLink: result.link,
+          }),
+        });
+      }
+      
       setStatus(PostStatus.COMPLETED);
     } catch (err: any) {
       setError("Failed to draft to WordPress: " + err.message);

@@ -1,19 +1,48 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Plus, FileText, TrendingUp, Calendar, ArrowRight, Sparkles } from 'lucide-react';
-import { BlogPostRecord } from '../../../types';
+import { Plus, FileText, TrendingUp, Calendar, ArrowRight, Sparkles, Loader2 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
 
+interface Post {
+  id: number;
+  title: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  wordpressLink?: string;
+}
+
 export default function Dashboard() {
-  const recentPosts: BlogPostRecord[] = [
-    { id: '1', topic: 'Top 10 Marketing Strategies for 2025', date: '2024-05-10', status: 'Published' },
-    { id: '2', topic: 'Understanding Neural Networks', date: '2024-05-12', status: 'Draft' },
-    { id: '3', topic: 'Minimalist Interior Design Guide', date: '2024-05-14', status: 'Scheduled' },
-  ];
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchPosts();
+  }, []);
+
+  const fetchPosts = async () => {
+    try {
+      const response = await fetch('/api/posts');
+      if (!response.ok) {
+        throw new Error('Failed to fetch posts');
+      }
+      const data = await response.json();
+      setPosts(data);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const recentPosts = posts.slice(0, 5);
+  const publishedCount = posts.filter(p => p.status === 'published').length;
+  const draftCount = posts.filter(p => p.status === 'draft').length;
 
   return (
     <div className="max-w-7xl mx-auto space-y-10 animate-in fade-in duration-700">
@@ -30,9 +59,9 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard title="Total Posts" value="12" icon={FileText} color="blue" />
-        <StatCard title="Published" value="8" icon={TrendingUp} color="green" />
-        <StatCard title="Scheduled" value="4" icon={Calendar} color="orange" />
+        <StatCard title="Total Posts" value={posts.length.toString()} icon={FileText} color="blue" />
+        <StatCard title="Published" value={publishedCount.toString()} icon={TrendingUp} color="green" />
+        <StatCard title="Drafts" value={draftCount.toString()} icon={Calendar} color="orange" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -43,30 +72,56 @@ export default function Dashboard() {
                 <CardTitle>Recent Activity</CardTitle>
                 <CardDescription>Latest content generated and published.</CardDescription>
               </div>
-              <Button variant="ghost" size="sm" className="text-purple-600 font-semibold hover:bg-purple-50 rounded-full">View All</Button>
+              <Link href="/generate">
+                <Button variant="ghost" size="sm" className="text-purple-600 font-semibold hover:bg-purple-50 rounded-full">View All</Button>
+              </Link>
             </CardHeader>
             <CardContent className="pt-6">
-              <div className="space-y-2">
-                {recentPosts.map((post) => (
-                  <div key={post.id} className="flex items-center justify-between p-4 hover:bg-slate-50 rounded-2xl transition-all group border border-transparent hover:border-slate-100">
-                    <div className="flex items-center gap-4">
-                       <div className="w-10 h-10 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center">
-                          <FileText size={18} />
-                       </div>
-                       <div>
-                        <h4 className="font-bold text-slate-900 group-hover:text-purple-600 transition-colors">{post.topic}</h4>
-                        <p className="text-xs text-slate-400 font-medium">Updated on {post.date}</p>
-                       </div>
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+                </div>
+              ) : error ? (
+                <div className="text-center py-12 text-red-600">
+                  Error loading posts: {error}
+                </div>
+              ) : recentPosts.length === 0 ? (
+                <div className="text-center py-12 text-slate-500">
+                  <FileText className="h-12 w-12 mx-auto mb-4 text-slate-300" />
+                  <p className="font-semibold">No posts yet</p>
+                  <p className="text-sm">Create your first post to get started!</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {recentPosts.map((post) => (
+                    <div key={post.id} className="flex items-center justify-between p-4 hover:bg-slate-50 rounded-2xl transition-all group border border-transparent hover:border-slate-100">
+                      <div className="flex items-center gap-4">
+                         <div className="w-10 h-10 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center">
+                            <FileText size={18} />
+                         </div>
+                         <div>
+                          <h4 className="font-bold text-slate-900 group-hover:text-purple-600 transition-colors">{post.title}</h4>
+                          <p className="text-xs text-slate-400 font-medium">Updated on {new Date(post.updatedAt).toLocaleDateString()}</p>
+                         </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <StatusBadge status={post.status} />
+                        {post.wordpressLink ? (
+                          <a href={post.wordpressLink} target="_blank" rel="noopener noreferrer">
+                            <Button variant="ghost" size="icon" className="text-slate-300 group-hover:text-purple-600 transition-colors rounded-full">
+                              <ArrowRight size={18} />
+                            </Button>
+                          </a>
+                        ) : (
+                          <Button variant="ghost" size="icon" className="text-slate-300 group-hover:text-purple-600 transition-colors rounded-full">
+                            <ArrowRight size={18} />
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <StatusBadge status={post.status} />
-                      <Button variant="ghost" size="icon" className="text-slate-300 group-hover:text-purple-600 transition-colors rounded-full">
-                        <ArrowRight size={18} />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -118,9 +173,11 @@ const StatCard = ({ title, value, icon: Icon, color }: { title: string, value: s
 
 const StatusBadge = ({ status }: { status: string }) => {
   let variant: "default" | "secondary" | "outline" | "success" | "warning" = "secondary";
-  if (status === 'Published') variant = "success";
-  if (status === 'Draft') variant = "secondary";
-  if (status === 'Scheduled') variant = "warning";
+  if (status === 'published') variant = "success";
+  if (status === 'draft') variant = "secondary";
+  if (status === 'researching') variant = "warning";
   
-  return <Badge variant={variant} className="px-3 py-1 rounded-full font-semibold">{status}</Badge>;
+  const displayStatus = status.charAt(0).toUpperCase() + status.slice(1);
+  
+  return <Badge variant={variant} className="px-3 py-1 rounded-full font-semibold">{displayStatus}</Badge>;
 };
